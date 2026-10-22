@@ -125,5 +125,4 @@ public class Main {
         s.addCopy(b8.getId(), "S-01", BookCondition.GOOD, true);
     }
 }
-    }
-}
+
