@@ -1,12 +1,11 @@
 package library;
 
-import library.LibraryDatabase.Identifiable;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import library.LibraryDatabase.Identifiable;
 
 /**
  * ABSTRACTION: User is abstract — you can never create a plain "User",
@@ -22,6 +21,7 @@ import java.util.regex.Pattern;
  *
  * Accounts are created from the users.txt file (see LibraryDatabase).
  */
+
 public abstract class User implements Identifiable, Serializable {
     private static final long serialVersionUID = 2L;
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$");
