@@ -1,0 +1,22 @@
+# ==========================================================================
+# SCHOOL LIBRARY MANAGEMENT SYSTEM - USER ACCOUNTS (programmers only)
+# --------------------------------------------------------------------------
+# Add, change or remove accounts here, then restart the program.
+# School IDs are never shown in the program; they only identify the record.
+# Usernames and passwords are NOT case-sensitive when logging in.
+# Removing a line disables that account (its history is kept).
+#
+# Format (fields separated by | ):
+#   LIBRARIAN | School ID | Username | Password | Full Name | Email
+#   TEACHER   | School ID | Username | Password | Full Name | Email | Department
+#   STUDENT   | School ID | Username | Password | Full Name | Email | Grade (1-12) | Homeroom | Age
+# ==========================================================================
+
+LIBRARIAN | LIB-001 | admin  | admin123   | Onion Vidallon   | onion@school.edu.ph
+
+TEACHER   | T-1001  | teacher1 | teacher123 | Jeric Torres     | jtor@school.edu.ph | Science
+TEACHER   | T-1002  | teacher2  | teacher123 | Ethan Navarette       | ethanav@school.edu.ph  | English
+
+STUDENT   | S-2001  | st1   | student123 | student1 | st111@student.school.edu.ph | 5  | 5-Sampaguita | 10
+STUDENT   | S-2002  | st2    | student123 | student2     | st222@student.school.edu.ph   | 11 | 11-STEM A    | 16
+STUDENT   | S-2003  | st3  | student123 | student3      | st333@student.school.edu.ph      | 8  | 8-Rizal      | 13
