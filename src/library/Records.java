@@ -13,7 +13,8 @@ import java.util.List;
 /**
  * Records kept by the library: loans, reservations, fines, borrow requests,
  * donation requests and the transaction history (plus their status enums).
- * Each record is ENCAPSULATED: fields are private and change only through methods.
+ * Each record is ENCAPSULATED: fields are private and change only through
+ * methods.
  */
 public final class Records {
 
@@ -25,16 +26,21 @@ public final class Records {
      * for display, so School IDs never appear on screen.
      */
     public static String userLabel(String userId) {
-        User u = LibraryDatabase.getInstance().getUsers().findOrNull(userId);   // Singleton
+        User u = LibraryDatabase.getInstance().getUsers().findOrNull(userId); // Singleton
         return u == null ? "(removed)" : u.getUsername();
     }
 
-    public enum LoanStatus { ACTIVE, RETURNED, LOST }
+    public enum LoanStatus {
+        ACTIVE, RETURNED, LOST
+    }
 
-    public enum RequestStatus { PENDING, APPROVED, REJECTED }
+    public enum RequestStatus {
+        PENDING, APPROVED, REJECTED
+    }
 
     public enum TransactionType {
-        BORROW_REQUEST, BORROW, RETURN, RENEW, RESERVE, CANCEL_RESERVATION, FINE, PAYMENT, DONATION, LOST
+        BORROW_REQUEST, BORROW, RETURN, RENEW, RESERVE, CANCEL_RESERVATION, FINE, PAYMENT, DONATION, LOST,
+        RETURN_REQUEST
     }
 
     // =====================================================================
@@ -50,10 +56,11 @@ public final class Records {
         private LoanStatus status = LoanStatus.ACTIVE;
         private final BookCondition conditionAtBorrow;
         private BookCondition conditionAtReturn;
-        private int finedOverdueDays;   // overdue days already charged (prevents double-charging)
+        private int finedOverdueDays; // overdue days already charged (prevents double-charging)
+        private LocalDate returnRequestedOn; // set when the borrower asks to return; librarian confirms
 
         public Loan(String loanId, String userId, String bookId, String copyId,
-                    LocalDate borrowDate, LocalDate dueDate, BookCondition conditionAtBorrow) {
+                LocalDate borrowDate, LocalDate dueDate, BookCondition conditionAtBorrow) {
             this.loanId = loanId;
             this.userId = userId;
             this.bookId = bookId;
@@ -63,26 +70,79 @@ public final class Records {
             this.conditionAtBorrow = conditionAtBorrow;
         }
 
-        @Override public String getId() { return loanId; }
-        public String getUserId() { return userId; }
-        public String getBookId() { return bookId; }
-        public String getCopyId() { return copyId; }
-        public LocalDate getBorrowDate() { return borrowDate; }
-        public LocalDate getDueDate() { return dueDate; }
-        public int getRenewCount() { return renewCount; }
-        public LoanStatus getStatus() { return status; }
-        public BookCondition getConditionAtBorrow() { return conditionAtBorrow; }
-        public BookCondition getConditionAtReturn() { return conditionAtReturn; }
-        public int getFinedOverdueDays() { return finedOverdueDays; }
-        public void setFinedOverdueDays(int days) { this.finedOverdueDays = days; }
+        @Override
+        public String getId() {
+            return loanId;
+        }
 
-        public boolean isActive() { return status == LoanStatus.ACTIVE; }
+        public String getUserId() {
+            return userId;
+        }
+
+        public String getBookId() {
+            return bookId;
+        }
+
+        public String getCopyId() {
+            return copyId;
+        }
+
+        public LocalDate getBorrowDate() {
+            return borrowDate;
+        }
+
+        public LocalDate getDueDate() {
+            return dueDate;
+        }
+
+        public int getRenewCount() {
+            return renewCount;
+        }
+
+        public LoanStatus getStatus() {
+            return status;
+        }
+
+        public BookCondition getConditionAtBorrow() {
+            return conditionAtBorrow;
+        }
+
+        public BookCondition getConditionAtReturn() {
+            return conditionAtReturn;
+        }
+
+        public int getFinedOverdueDays() {
+            return finedOverdueDays;
+        }
+
+        public void setFinedOverdueDays(int days) {
+            this.finedOverdueDays = days;
+        }
+
+        public boolean isActive() {
+            return status == LoanStatus.ACTIVE;
+        }
 
         public boolean isOverdue(LocalDate today) {
             return status == LoanStatus.ACTIVE && today.isAfter(dueDate);
         }
 
-        /** Days past the due date, measured to the return date or to 'today' if still out. */
+        public boolean isReturnRequested() {
+            return returnRequestedOn != null;
+        }
+
+        public LocalDate getReturnRequestedOn() {
+            return returnRequestedOn;
+        }
+
+        public void requestReturn(LocalDate date) {
+            this.returnRequestedOn = date;
+        }
+
+        /**
+         * Days past the due date, measured to the return date or to 'today' if still
+         * out.
+         */
         public int getDaysOverdue(LocalDate today) {
             LocalDate end = (returnDate != null) ? returnDate : today;
             return (int) Math.max(0, ChronoUnit.DAYS.between(dueDate, end));
@@ -113,7 +173,10 @@ public final class Records {
     }
 
     // =====================================================================
-    /** A waitlist entry for a book with no available copies. Queue order = creation order. */
+    /**
+     * A waitlist entry for a book with no available copies. Queue order = creation
+     * order.
+     */
     public static class Reservation implements Identifiable, Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -128,11 +191,26 @@ public final class Records {
             this.reservedOn = reservedOn;
         }
 
-        @Override public String getId() { return reservationId; }
-        public String getUserId() { return userId; }
-        public String getBookId() { return bookId; }
-        public boolean isActive() { return active; }
-        public void close() { active = false; }
+        @Override
+        public String getId() {
+            return reservationId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public String getBookId() {
+            return bookId;
+        }
+
+        public boolean isActive() {
+            return active;
+        }
+
+        public void close() {
+            active = false;
+        }
 
         @Override
         public String toString() {
@@ -164,12 +242,30 @@ public final class Records {
             this.issuedDate = issuedDate;
         }
 
-        @Override public String getId() { return fineId; }
-        public String getUserId() { return userId; }
-        public String getLoanId() { return loanId; }
-        public double getAmount() { return amount; }
-        public String getReason() { return reason; }
-        public boolean isPaid() { return paid; }
+        @Override
+        public String getId() {
+            return fineId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public String getLoanId() {
+            return loanId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public boolean isPaid() {
+            return paid;
+        }
 
         public void markPaid(LocalDate date) {
             paid = true;
@@ -184,7 +280,10 @@ public final class Records {
     }
 
     // =====================================================================
-    /** A student's borrow request or a teacher's bulk request, waiting for the librarian. */
+    /**
+     * A student's borrow request or a teacher's bulk request, waiting for the
+     * librarian.
+     */
     public static class BorrowRequest implements Identifiable, Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -200,12 +299,30 @@ public final class Records {
             this.requestDate = requestDate;
         }
 
-        @Override public String getId() { return requestId; }
-        public String getUserId() { return userId; }
-        public List<String> getBookIds() { return Collections.unmodifiableList(bookIds); }
-        public RequestStatus getStatus() { return status; }
-        public void setStatus(RequestStatus status) { this.status = status; }
-        public boolean isPending() { return status == RequestStatus.PENDING; }
+        @Override
+        public String getId() {
+            return requestId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public List<String> getBookIds() {
+            return Collections.unmodifiableList(bookIds);
+        }
+
+        public RequestStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(RequestStatus status) {
+            this.status = status;
+        }
+
+        public boolean isPending() {
+            return status == RequestStatus.PENDING;
+        }
 
         @Override
         public String toString() {
@@ -215,7 +332,10 @@ public final class Records {
     }
 
     // =====================================================================
-    /** A donated book logged by a user, waiting for the librarian to tag and shelve it. */
+    /**
+     * A donated book logged by a user, waiting for the librarian to tag and shelve
+     * it.
+     */
     public static class DonationRequest implements Identifiable, Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -238,18 +358,54 @@ public final class Records {
             this.dateLogged = dateLogged;
         }
 
-        @Override public String getId() { return donationId; }
-        public String getDonorId() { return donorId; }
-        public String getTitle() { return title; }
-        public String getAuthor() { return author; }
-        public String getGenre() { return genre; }
-        public int getYear() { return year; }
-        public String getIsbn() { return isbn; }
-        public int getAgeRating() { return ageRating; }
-        public double getValue() { return value; }
-        public RequestStatus getStatus() { return status; }
-        public void setStatus(RequestStatus status) { this.status = status; }
-        public boolean isPending() { return status == RequestStatus.PENDING; }
+        @Override
+        public String getId() {
+            return donationId;
+        }
+
+        public String getDonorId() {
+            return donorId;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getAuthor() {
+            return author;
+        }
+
+        public String getGenre() {
+            return genre;
+        }
+
+        public int getYear() {
+            return year;
+        }
+
+        public String getIsbn() {
+            return isbn;
+        }
+
+        public int getAgeRating() {
+            return ageRating;
+        }
+
+        public double getValue() {
+            return value;
+        }
+
+        public RequestStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(RequestStatus status) {
+            this.status = status;
+        }
+
+        public boolean isPending() {
+            return status == RequestStatus.PENDING;
+        }
 
         @Override
         public String toString() {
@@ -269,7 +425,7 @@ public final class Records {
         private final LocalDate date;
 
         public Transaction(String transactionId, String userId, TransactionType type,
-                           String description, double amount, LocalDate date) {
+                String description, double amount, LocalDate date) {
             this.transactionId = transactionId;
             this.userId = userId;
             this.type = type;
@@ -278,13 +434,20 @@ public final class Records {
             this.date = date;
         }
 
-        @Override public String getId() { return transactionId; }
-        public String getUserId() { return userId; }
+        @Override
+        public String getId() {
+            return transactionId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
 
         @Override
         public String toString() {
             String money = amount != 0 ? String.format(" | PHP %.2f", amount) : "";
-            return String.format("%s | %s | %-10s | %-18s | %s%s", transactionId, date, userLabel(userId), type, description, money);
+            return String.format("%s | %s | %-10s | %-18s | %s%s", transactionId, date, userLabel(userId), type,
+                    description, money);
         }
     }
 }

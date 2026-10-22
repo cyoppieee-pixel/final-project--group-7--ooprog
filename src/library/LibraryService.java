@@ -35,10 +35,12 @@ import java.util.Set;
 
 /**
  * All business logic of the system:
- *   Log In | Accounts file | Book Management | User Management | Search | Circulation &
- *   Reservations | Fines | Donations | Reports
+ * Log In | Accounts file | Book Management | User Management | Search |
+ * Circulation &
+ * Reservations | Fines | Donations | Reports
  *
- * It is also the CONTEXT for both Strategy patterns (FineStrategy, SearchStrategy).
+ * It is also the CONTEXT for both Strategy patterns (FineStrategy,
+ * SearchStrategy).
  * Methods only THROW exceptions; catching happens in ExceptionHandler.
  */
 public class LibraryService {
@@ -49,7 +51,7 @@ public class LibraryService {
             new SearchStrategy.ByIsbn(), new SearchStrategy.ByAgeRating(), new SearchStrategy.ByAvailability(),
             new SearchStrategy.ByDonatedTag()));
 
-    private final LibraryDatabase db = LibraryDatabase.getInstance();   // Singleton
+    private final LibraryDatabase db = LibraryDatabase.getInstance(); // Singleton
     private FineStrategy fineStrategy = new FineStrategy.Overdue();
     private SearchStrategy searchStrategy = SEARCH_STRATEGIES.get(0);
 
@@ -58,10 +60,13 @@ public class LibraryService {
     }
 
     // =====================================================================
-    // LOG IN  (role -> username -> password; nothing is case-sensitive)
+    // LOG IN (role -> username -> password; nothing is case-sensitive)
     // =====================================================================
 
-    /** School IDs of the accounts currently listed in users.txt (only these can log in). */
+    /**
+     * School IDs of the accounts currently listed in users.txt (only these can log
+     * in).
+     */
     private final Set<String> fileAccounts = new HashSet<>();
 
     public User login(Role role, String username, String password) throws LibraryException {
@@ -109,7 +114,8 @@ public class LibraryService {
         }
         Role role = null;
         for (Role r : Role.values()) {
-            if (r.name().equalsIgnoreCase(f[0])) role = r;
+            if (r.name().equalsIgnoreCase(f[0]))
+                role = r;
         }
         if (role == null) {
             throw new InvalidInputException("Unknown role '" + f[0] + "' (use LIBRARIAN, TEACHER or STUDENT).");
@@ -145,9 +151,15 @@ public class LibraryService {
         if (existing == null) {
             User created;
             switch (role) {
-                case LIBRARIAN: created = ExceptionHandler.tryCreate(() -> new Librarian(id, f[2], f[3], f[4], f[5])); break;
-                case TEACHER:   created = ExceptionHandler.tryCreate(() -> new Teacher(id, f[2], f[3], f[4], f[5], f[6])); break;
-                default:        created = ExceptionHandler.tryCreate(() -> new Student(id, f[2], f[3], f[4], f[5], g, f[7], a)); break;
+                case LIBRARIAN:
+                    created = ExceptionHandler.tryCreate(() -> new Librarian(id, f[2], f[3], f[4], f[5]));
+                    break;
+                case TEACHER:
+                    created = ExceptionHandler.tryCreate(() -> new Teacher(id, f[2], f[3], f[4], f[5], f[6]));
+                    break;
+                default:
+                    created = ExceptionHandler.tryCreate(() -> new Student(id, f[2], f[3], f[4], f[5], g, f[7], a));
+                    break;
             }
             db.getUsers().add(created);
         } else {
@@ -163,7 +175,7 @@ public class LibraryService {
                 if (existing instanceof Teacher) {
                     ((Teacher) existing).setDepartment(f[6]);
                 } else if (existing instanceof Student) {
-                    Student st = (Student) existing;   // downcast after an instanceof check
+                    Student st = (Student) existing; // downcast after an instanceof check
                     st.setGradeLevel(g);
                     st.setHomeroom(f[7]);
                     st.setAge(a);
@@ -180,7 +192,7 @@ public class LibraryService {
 
     /** CREATE a book. */
     public Book addBook(String title, String author, String genre, int year,
-                        String isbn, int ageRating, double value) throws LibraryException {
+            String isbn, int ageRating, double value) throws LibraryException {
         Book book = ExceptionHandler.tryCreate(
                 () -> new Book(db.nextId("BK"), title, author, genre, year, isbn, ageRating, value));
         if (findByIsbn(book.getIsbn()) != null) {
@@ -221,7 +233,8 @@ public class LibraryService {
 
     public Book getBookByCopyId(String copyId) throws NotFoundException {
         for (Book b : db.getBooks().findAll()) {
-            if (b.findCopy(copyId) != null) return b;
+            if (b.findCopy(copyId) != null)
+                return b;
         }
         throw new NotFoundException("Book copy", copyId);
     }
@@ -232,7 +245,7 @@ public class LibraryService {
 
     /** UPDATE a book. Any parameter passed as null keeps its current value. */
     public Book updateBook(String bookId, String title, String author, String genre, Integer year,
-                           String isbn, Integer ageRating, Double value) throws LibraryException {
+            String isbn, Integer ageRating, Double value) throws LibraryException {
         Book book = getBook(bookId);
         if (isbn != null) {
             Book other = findByIsbn(isbn);
@@ -241,13 +254,20 @@ public class LibraryService {
             }
         }
         ExceptionHandler.tryUpdate(() -> {
-            if (title != null) book.setTitle(title);
-            if (author != null) book.setAuthor(author);
-            if (genre != null) book.setGenre(genre);
-            if (year != null) book.setYear(year);
-            if (isbn != null) book.setIsbn(isbn);
-            if (ageRating != null) book.setAgeRating(ageRating);
-            if (value != null) book.setValue(value);
+            if (title != null)
+                book.setTitle(title);
+            if (author != null)
+                book.setAuthor(author);
+            if (genre != null)
+                book.setGenre(genre);
+            if (year != null)
+                book.setYear(year);
+            if (isbn != null)
+                book.setIsbn(isbn);
+            if (ageRating != null)
+                book.setAgeRating(ageRating);
+            if (value != null)
+                book.setValue(value);
         });
         db.getBooks().update(book);
         return book;
@@ -260,8 +280,10 @@ public class LibraryService {
             throw new InvalidInputException("The condition of a copy on loan is recorded when it is returned.");
         }
         ExceptionHandler.tryUpdate(() -> {
-            if (rack != null) copy.setRackNumber(rack);
-            if (condition != null) copy.setCondition(condition);
+            if (rack != null)
+                copy.setRackNumber(rack);
+            if (condition != null)
+                copy.setCondition(condition);
         });
         return copy;
     }
@@ -380,6 +402,7 @@ public class LibraryService {
 
     /**
      * Calculates and records a fine with the current strategy.
+     * 
      * @return the new Fine, or null if there is nothing to charge
      */
     public Fine assessFine(Loan loan, Book book) throws LibraryException {
@@ -392,7 +415,8 @@ public class LibraryService {
         db.getFines().add(fine);
         fineStrategy.afterAssessed(loan, db.today());
         db.log(loan.getUserId(), TransactionType.FINE, fine.getReason(), fine.getAmount());
-        notifyUser(loan.getUserId(), String.format("A fine of PHP %.2f was issued: %s", fine.getAmount(), fine.getReason()));
+        notifyUser(loan.getUserId(),
+                String.format("A fine of PHP %.2f was issued: %s", fine.getAmount(), fine.getReason()));
         return fine;
     }
 
@@ -435,7 +459,8 @@ public class LibraryService {
                     amountTendered, fine.getAmount()));
         }
         fine.markPaid(db.today());
-        db.log(fine.getUserId(), TransactionType.PAYMENT, "Paid " + fine.getId() + ": " + fine.getReason(), fine.getAmount());
+        db.log(fine.getUserId(), TransactionType.PAYMENT, "Paid " + fine.getId() + ": " + fine.getReason(),
+                fine.getAmount());
         return Math.round((amountTendered - fine.getAmount()) * 100.0) / 100.0;
     }
 
@@ -455,12 +480,14 @@ public class LibraryService {
 
     public double getTotalUnpaid(String userId) {
         double total = 0;
-        for (Fine f : getUnpaidFines(userId)) total += f.getAmount();
+        for (Fine f : getUnpaidFines(userId))
+            total += f.getAmount();
         return total;
     }
 
     private static void addIfNotNull(List<Fine> list, Fine fine) {
-        if (fine != null) list.add(fine);
+        if (fine != null)
+            list.add(fine);
     }
 
     // =====================================================================
@@ -476,7 +503,8 @@ public class LibraryService {
         }
         double owed = getTotalUnpaid(user.getId());
         if (owed > 0) {
-            throw new AccountRestrictedException(String.format("Unpaid fines of PHP %.2f must be settled before borrowing.", owed));
+            throw new AccountRestrictedException(
+                    String.format("Unpaid fines of PHP %.2f must be settled before borrowing.", owed));
         }
     }
 
@@ -497,7 +525,8 @@ public class LibraryService {
     private void checkNotAlreadyRequested(User user, Book book) throws BorrowingException {
         for (BorrowRequest r : getPendingRequestsFor(user.getId())) {
             if (r.getBookIds().contains(book.getId())) {
-                throw new BorrowingException("\"" + book.getTitle() + "\" is already in your pending request " + r.getId() + ".");
+                throw new BorrowingException(
+                        "\"" + book.getTitle() + "\" is already in your pending request " + r.getId() + ".");
             }
         }
     }
@@ -505,7 +534,8 @@ public class LibraryService {
     /** Available copies minus the people ahead of this user in the waitlist. */
     private boolean isAvailableFor(User user, Book book) {
         int available = book.getAvailableCopyCount();
-        if (available == 0) return false;
+        if (available == 0)
+            return false;
         List<Reservation> queue = getQueue(book.getId());
         int ahead = queue.size();
         for (int i = 0; i < queue.size(); i++) {
@@ -533,7 +563,8 @@ public class LibraryService {
     /** Books held + books in pending requests (both count toward the limit). */
     public int getCommittedCount(String userId) {
         int count = getActiveLoans(userId).size();
-        for (BorrowRequest r : getPendingRequestsFor(userId)) count += r.getBookIds().size();
+        for (BorrowRequest r : getPendingRequestsFor(userId))
+            count += r.getBookIds().size();
         return count;
     }
 
@@ -553,8 +584,9 @@ public class LibraryService {
         checkEligibility(user);
         int committed = getCommittedCount(user.getId());
         if (committed + ids.size() > user.getBorrowLimit()) {
-            throw new BorrowLimitExceededException(String.format("%s limit is %d books. You hold/requested %d and asked for %d more.",
-                    user.getRole(), user.getBorrowLimit(), committed, ids.size()));
+            throw new BorrowLimitExceededException(
+                    String.format("%s limit is %d books. You hold/requested %d and asked for %d more.",
+                            user.getRole(), user.getBorrowLimit(), committed, ids.size()));
         }
         for (String id : ids) {
             Book book = getBook(id);
@@ -578,7 +610,10 @@ public class LibraryService {
         return db.getBorrowRequests().findWhere(r -> r.isPending() && r.getUserId().equals(id));
     }
 
-    /** Librarian approves a request: all books are issued, or none (validated first). */
+    /**
+     * Librarian approves a request: all books are issued, or none (validated
+     * first).
+     */
     public List<Loan> approveRequest(String requestId) throws LibraryException {
         BorrowRequest request = db.getBorrowRequests().findById(requestId);
         if (!request.isPending()) {
@@ -643,15 +678,18 @@ public class LibraryService {
         Loan loan = new Loan(db.nextId("LN"), user.getId(), book.getId(), copy.getCopyId(),
                 today, today.plusDays(user.getLoanPeriodDays()), copy.getCondition());
         db.getLoans().add(loan);
-        for (Reservation r : getQueue(book.getId())) {   // borrowing fulfils the user's reservation
-            if (r.getUserId().equals(user.getId())) r.close();
+        for (Reservation r : getQueue(book.getId())) { // borrowing fulfils the user's reservation
+            if (r.getUserId().equals(user.getId()))
+                r.close();
         }
         db.log(user.getId(), TransactionType.BORROW, "Borrowed \"" + book.getTitle() + "\" (" + copy.getCopyId()
                 + "), due " + loan.getDueDate(), 0);
         return loan;
     }
 
-    /** Processes a return, records the condition and applies overdue/damage fines. */
+    /**
+     * Processes a return, records the condition and applies overdue/damage fines.
+     */
     public List<Fine> returnBook(String copyId, BookCondition returnCondition) throws LibraryException {
         if (returnCondition == BookCondition.LOST) {
             throw new InvalidInputException("A returned book cannot be LOST. Use 'Assess Loss' instead.");
@@ -681,6 +719,34 @@ public class LibraryService {
         return fines;
     }
 
+    /**
+     * Borrower says "I'm returning this book". The loan stays active until the
+     * librarian inspects the book and confirms the return (returnBook).
+     */
+    public Loan requestReturn(User user, String loanId) throws LibraryException {
+        Loan loan = db.getLoans().findById(loanId);
+        if (!loan.isActive()) {
+            throw new InvalidInputException("This book has already been returned.");
+        }
+        if (!loan.getUserId().equals(user.getId())) {
+            throw new InvalidInputException("This loan does not belong to you.");
+        }
+        if (loan.isReturnRequested()) {
+            throw new DuplicateEntryException(
+                    "You already asked to return this book. Please hand it to the librarian.");
+        }
+        loan.requestReturn(db.today());
+        Book book = getBook(loan.getBookId());
+        db.log(user.getId(), TransactionType.RETURN_REQUEST,
+                "Asked to return \"" + book.getTitle() + "\" (" + loan.getCopyId() + ")", 0);
+        return loan;
+    }
+
+    /** Loans whose borrower asked to return them, waiting for the librarian. */
+    public List<Loan> getReturnRequests() {
+        return db.getLoans().findWhere(Loan::isReturnRequested);
+    }
+
     /** "Assess Damage/Losses" for a borrowed book that will never come back. */
     public List<Fine> markLost(String loanId) throws LibraryException {
         Loan loan = db.getLoans().findById(loanId);
@@ -692,7 +758,8 @@ public class LibraryService {
         loan.markLost(db.today());
         copy.setCondition(BookCondition.LOST);
         copy.setOnLoan(false);
-        db.log(loan.getUserId(), TransactionType.LOST, "Reported lost: \"" + book.getTitle() + "\" (" + copy.getCopyId() + ")", 0);
+        db.log(loan.getUserId(), TransactionType.LOST,
+                "Reported lost: \"" + book.getTitle() + "\" (" + copy.getCopyId() + ")", 0);
 
         List<Fine> fines = new ArrayList<>();
         setFineStrategy(new FineStrategy.Overdue());
@@ -715,7 +782,8 @@ public class LibraryService {
             throw new AccountRestrictedException("Account " + borrower.getId() + " is " + borrower.getStatus() + ".");
         }
         if (loan.isOverdue(db.today())) {
-            throw new RenewalNotAllowedException("Overdue books cannot be renewed. Please return it and settle the fine.");
+            throw new RenewalNotAllowedException(
+                    "Overdue books cannot be renewed. Please return it and settle the fine.");
         }
         if (loan.getRenewCount() >= borrower.getMaxRenewals()) {
             throw new RenewalNotAllowedException("Renewal limit reached (" + borrower.getMaxRenewals()
@@ -725,7 +793,8 @@ public class LibraryService {
             throw new RenewalNotAllowedException("Other users have reserved this book, so it cannot be renewed.");
         }
         loan.renew(borrower.getLoanPeriodDays());
-        db.log(borrower.getId(), TransactionType.RENEW, "Renewed loan " + loan.getId() + ", new due date " + loan.getDueDate(), 0);
+        db.log(borrower.getId(), TransactionType.RENEW,
+                "Renewed loan " + loan.getId() + ", new due date " + loan.getDueDate(), 0);
         return loan;
     }
 
@@ -759,11 +828,13 @@ public class LibraryService {
         checkNotAlreadyBorrowing(user, book);
         for (Reservation r : getQueue(book.getId())) {
             if (r.getUserId().equals(user.getId())) {
-                throw new DuplicateEntryException("You already reserved \"" + book.getTitle() + "\" (" + r.getId() + ").");
+                throw new DuplicateEntryException(
+                        "You already reserved \"" + book.getTitle() + "\" (" + r.getId() + ").");
             }
         }
         if (isAvailableFor(user, book)) {
-            throw new BorrowingException("\"" + book.getTitle() + "\" is available right now. Submit a borrow request instead.");
+            throw new BorrowingException(
+                    "\"" + book.getTitle() + "\" is available right now. Submit a borrow request instead.");
         }
         Reservation r = new Reservation(db.nextId("RS"), user.getId(), book.getId(), db.today());
         db.getReservations().add(r);
@@ -799,7 +870,8 @@ public class LibraryService {
     public int getQueuePosition(Reservation reservation) {
         List<Reservation> queue = getQueue(reservation.getBookId());
         for (int i = 0; i < queue.size(); i++) {
-            if (queue.get(i).getId().equals(reservation.getId())) return i + 1;
+            if (queue.get(i).getId().equals(reservation.getId()))
+                return i + 1;
         }
         return -1;
     }
@@ -819,12 +891,13 @@ public class LibraryService {
     // =====================================================================
 
     public DonationRequest submitDonation(User donor, String title, String author, String genre,
-                                          int year, String isbn, int ageRating, double value) throws LibraryException {
+            int year, String isbn, int ageRating, double value) throws LibraryException {
         if (!donor.isActive()) {
             throw new InvalidInputException("Only active accounts can log donations.");
         }
         // reuse Book's validation rules without saving anything
-        Book details = ExceptionHandler.tryCreate(() -> new Book("TEMP", title, author, genre, year, isbn, ageRating, value));
+        Book details = ExceptionHandler
+                .tryCreate(() -> new Book("TEMP", title, author, genre, year, isbn, ageRating, value));
         DonationRequest d = new DonationRequest(db.nextId("DN"), donor.getId(), details, db.today());
         db.getDonations().add(d);
         db.log(donor.getId(), TransactionType.DONATION, "Logged donation " + d.getId() + ": \"" + d.getTitle()
@@ -840,7 +913,10 @@ public class LibraryService {
         return db.getDonations().findAll();
     }
 
-    /** Applies the Donated Tag and assigns a Copy ID (adds to the existing title if the ISBN exists). */
+    /**
+     * Applies the Donated Tag and assigns a Copy ID (adds to the existing title if
+     * the ISBN exists).
+     */
     public BookCopy approveDonation(String donationId, String rack, BookCondition condition) throws LibraryException {
         DonationRequest d = db.getDonations().findById(donationId);
         if (!d.isPending()) {
@@ -848,11 +924,13 @@ public class LibraryService {
         }
         Book book = findByIsbn(d.getIsbn());
         if (book == null) {
-            book = addBook(d.getTitle(), d.getAuthor(), d.getGenre(), d.getYear(), d.getIsbn(), d.getAgeRating(), d.getValue());
+            book = addBook(d.getTitle(), d.getAuthor(), d.getGenre(), d.getYear(), d.getIsbn(), d.getAgeRating(),
+                    d.getValue());
         }
         BookCopy copy = addCopy(book.getId(), rack, condition, true);
         d.setStatus(RequestStatus.APPROVED);
-        db.log(d.getDonorId(), TransactionType.DONATION, "Donation " + d.getId() + " accepted as " + copy.getCopyId(), 0);
+        db.log(d.getDonorId(), TransactionType.DONATION, "Donation " + d.getId() + " accepted as " + copy.getCopyId(),
+                0);
         notifyUser(d.getDonorId(), "Thank you! Your donated book \"" + d.getTitle() + "\" is now in the catalog as "
                 + copy.getCopyId() + ".");
         notifyWaitlist(book);
@@ -879,36 +957,50 @@ public class LibraryService {
             titles++;
             for (BookCopy c : b.getCopies()) {
                 copies++;
-                if (c.isBorrowable()) available++;
-                if (c.isOnLoan()) onLoan++;
-                if (c.getCondition() == BookCondition.DAMAGED) damaged++;
-                if (c.getCondition() == BookCondition.LOST) lost++;
-                if (c.isDonated()) donated++;
+                if (c.isBorrowable())
+                    available++;
+                if (c.isOnLoan())
+                    onLoan++;
+                if (c.getCondition() == BookCondition.DAMAGED)
+                    damaged++;
+                if (c.getCondition() == BookCondition.LOST)
+                    lost++;
+                if (c.isDonated())
+                    donated++;
             }
         }
         int students = 0, teachers = 0, inactive = 0;
         for (User u : db.getUsers().findAll()) {
-            if (u.getRole() == Role.STUDENT) students++;
-            if (u.getRole() == Role.TEACHER) teachers++;
-            if (!u.isActive()) inactive++;
+            if (u.getRole() == Role.STUDENT)
+                students++;
+            if (u.getRole() == Role.TEACHER)
+                teachers++;
+            if (!u.isActive())
+                inactive++;
         }
         double unpaid = 0;
-        for (Fine f : getAllUnpaidFines()) unpaid += f.getAmount();
+        for (Fine f : getAllUnpaidFines())
+            unpaid += f.getAmount();
 
         List<String> lines = new ArrayList<>();
         lines.add("System date        : " + db.today());
         lines.add(String.format("Catalog            : %d titles, %d copies", titles, copies));
         lines.add(String.format("Copies             : %d available | %d on loan | %d damaged | %d lost | %d donated",
                 available, onLoan, damaged, lost, donated));
-        lines.add(String.format("Users              : %d students | %d teachers | %d not active", students, teachers, inactive));
-        lines.add(String.format("Active loans       : %d (%d overdue)", getAllActiveLoans().size(), getOverdueLoans().size()));
+        lines.add(String.format("Users              : %d students | %d teachers | %d not active", students, teachers,
+                inactive));
+        lines.add(String.format("Active loans       : %d (%d overdue)", getAllActiveLoans().size(),
+                getOverdueLoans().size()));
         lines.add(String.format("Pending requests   : %d borrow | %d donations",
                 getPendingRequests().size(), getPendingDonations().size()));
         lines.add(String.format("Unpaid fines       : PHP %.2f", unpaid));
         return lines;
     }
 
-    /** Copies filtered by condition (LOST / DAMAGED reports) or by donated tag (condition = null). */
+    /**
+     * Copies filtered by condition (LOST / DAMAGED reports) or by donated tag
+     * (condition = null).
+     */
     public List<String> getCopyReport(BookCondition condition) {
         List<String> lines = new ArrayList<>();
         for (Book b : db.getBooks().findAll()) {
