@@ -6,12 +6,15 @@ import library.BorrowerMenu.TeacherMenu;
 import library.ExceptionHandler.LibraryException;
 import library.User.Role;
 
+// Montenegro, Navarette, Torres, Vidallon
+
 /**
  * School Library Management System — OOPROG Finals, Group 7 (BSCS C2B).
  *
  * Accounts are read from users.txt (programmers only).
  * Run with "--reset" to ignore the save file and start from sample books.
  */
+
 public class Main {
 
     private static final int MAX_LOGIN_ATTEMPTS = 3;
