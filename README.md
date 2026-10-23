@@ -23,6 +23,23 @@ Data is saved automatically to `library_data.dat` when you log out or exit.
 3. After 3 wrong tries you're sent back to the main menu. The error never says whether the username or the password was wrong.
 4. The password is visible while typing, in both real terminals and IDE consoles like NetBeans.
 
+## Getting around
+
+Menus follow the concept map: a few main categories per role. Options marked **>** open more choices.
+
+| Role | Main menu |
+|---|---|
+| Librarian | Dashboard · Book Management > · Circulation > · User Management > · Finances/Fines > · Reports/Filters > |
+| Teacher | Dashboard > · Search/Filter Catalog · Bulk Borrow Request · Reserve Book > · Renew / Return Book > · Donate Book |
+| Student | Dashboard > · Search/Filter Catalog · Borrow Book · Reserve Book > · Renew / Return Book > · Donate Book |
+
+- *You never type an ID.* Whenever the program needs a book, copy, user, loan, fine, request or donation, it shows a numbered list and you pick a number. Teachers can pick several books at once (1,3,4).
+- **0 always goes back or cancels.** Cancelling never changes anything.
+- *"You are here" trail.* Every screen shows where you are, e.g. Main Menu > Circulation > Return Book.
+- *Results stay on screen.* After each action the program waits for *Enter* before showing the menu again.
+- *Returning a book.* Students and teachers choose *Renew / Return Book > Return Book* and pick the book. The librarian confirms it under *Circulation > Return Book > Return Requests* after checking its condition. The book counts as borrowed until then.
+- *Librarian To Do list.* The dashboard lists waiting borrow/return requests, donations and overdue loans, and gives the menu path for each one.
+
 ## Accounts file: `users.txt` (programmers only)
 
 All accounts live in `users.txt` next to the program. The program **only reads** this file; there is no screen for adding or editing accounts, and **School IDs never appear anywhere in the program**. Records are linked by the hidden School ID, and screens show the username instead.
