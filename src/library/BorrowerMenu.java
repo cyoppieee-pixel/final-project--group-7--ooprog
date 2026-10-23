@@ -1,16 +1,14 @@
 package library;
 
-import library.ExceptionHandler.InvalidInputException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import library.ExceptionHandler.LibraryException;
 import library.Records.BorrowRequest;
 import library.Records.DonationRequest;
 import library.Records.Fine;
 import library.Records.Loan;
 import library.Records.Reservation;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * INHERITANCE: shared menu for every user who borrows books.
@@ -23,7 +21,7 @@ public abstract class BorrowerMenu extends Menu {
         super(user, service);
     }
 
-    /** Label for option 4, e.g. "Borrow Book" or "Bulk Borrow Request". */
+    /** Label for the borrow option, e.g. "Borrow Book" or "Bulk Borrow Request". */
     protected abstract String getBorrowLabel();
 
     /** Role-specific borrow flow. */
@@ -32,16 +30,12 @@ public abstract class BorrowerMenu extends Menu {
     @Override
     protected String[] getOptions() {
         return new String[]{
-                "View Dashboard",
-                "Search/Filter Catalog",
-                "View Book Details",
-                getBorrowLabel(),
-                "Reserve Book",
-                "Renew Book",
-                "Donate Book",
-                "My Reservations",
-                "Borrowing History",
-                "My Fines / Pay Fine"
+                category("Dashboard", "Borrowed books, account fines, history"),
+                item("Search/Filter Catalog", "Find a book, or show all books available to you"),
+                item(getBorrowLabel(), "Pick from books on the shelf"),
+                category("Reserve Book", "Join a waitlist, see or cancel your reservations"),
+                category("Renew / Return Book", "Extend a due date, or return a book"),
+                item("Donate Book", "Give a book to the library")
         };
     }
 
@@ -56,18 +50,38 @@ public abstract class BorrowerMenu extends Menu {
     @Override
     protected void handle(int choice) throws LibraryException {
         switch (choice) {
-            case 1: showDashboard(); break;
+            case 1:
+                subMenu("Dashboard", new String[]{"My Fines / Pay Fine", "Borrowing History"}, c -> {
+                    if (c == 1) manageFines();
+                    if (c == 2) list(service.getHistory(user), "No transactions yet.");
+                }, this::showDashboard);
+                break;
             case 2: searchCatalog(); break;
-            case 3: showBookDetails(readRequired("Book ID: ")); break;
-            case 4: requestBorrow(); break;
-            case 5: reserveBook(); break;
-            case 6: renewBook(); break;
-            case 7: donateBook(); break;
-            case 8: manageReservations(); break;
-            case 9: list(service.getHistory(user), "No transactions yet."); break;
-            case 10: manageFines(); break;
+            case 3: requestBorrow(); break;
+            case 4:
+                subMenu("Reserve Book", new String[]{"Reserve a Book", "My Reservations (see / cancel)"}, c -> {
+                    if (c == 1) reserveBook();
+                    if (c == 2) manageReservations();
+                });
+                break;
+            case 5:
+                subMenu("Renew / Return Book", new String[]{"Renew Book", "Return Book"}, c -> {
+                    if (c == 1) renewBook();
+                    if (c == 2) returnBook();
+                });
+                break;
+            case 6: donateBook(); break;
             default: warn("Unknown option.");
         }
+    }
+
+    /** Books with a free copy right now (what can be borrowed). */
+    protected List<Book> borrowableBooks() {
+        List<Book> result = new ArrayList<>();
+        for (Book b : service.browseAll(user)) {
+            if (b.isAvailable()) result.add(b);
+        }
+        return result;
     }
 
     protected void showDashboard() {
@@ -101,24 +115,50 @@ public abstract class BorrowerMenu extends Menu {
     }
 
     protected void reserveBook() throws LibraryException {
-        Reservation r = service.reserveBook(user, readRequired("Book ID to reserve: "));
+        // Only books with NO available copies can be reserved (otherwise borrow directly)
+        List<Book> reservable = new ArrayList<>();
+        for (Book b : service.browseAll(user)) {
+            if (!b.isAvailable()) reservable.add(b);
+        }
+        Book book = pick("Which book would you like to reserve?", reservable, Menu::bookLabel,
+                "All books in your catalog currently have copies on the shelf! You can borrow them directly.");
+        if (book == null) return;
+        Reservation r = service.reserveBook(user, book.getId());
         success("Reserved! " + r.getId() + " - you are #" + service.getQueuePosition(r)
                 + " in line. You will be notified when a copy is returned.");
     }
 
     protected void renewBook() throws LibraryException {
         List<Loan> loans = service.getActiveLoans(user.getId());
-        if (loans.isEmpty()) {
-            info("You have no borrowed books.");
-            return;
-        }
-        loanTable(loans, db.today());
-        Loan loan = service.renewBook(user, readRequired("Loan ID to renew: "));
+        Loan picked = pick("Which loan do you want to renew?", loans, this::loanLabel, "You have no borrowed books.");
+        if (picked == null) return;
+        Loan loan = service.renewBook(user, picked.getId());
         success("Renewed. New due date: " + loan.getDueDate());
     }
 
+    protected void returnBook() throws LibraryException {
+        List<Loan> returnable = new ArrayList<>();
+        for (Loan l : service.getActiveLoans(user.getId())) {
+            if (!l.isReturnRequested()) returnable.add(l);
+        }
+        if (returnable.isEmpty()) {
+            info(service.getActiveLoans(user.getId()).isEmpty()
+                    ? (service.getPendingRequestsFor(user.getId()).isEmpty()
+                        ? "You have no borrowed books."
+                        : "You have no borrowed books yet - your borrow request is still waiting for the librarian.")
+                    : "You already asked to return all your books. Please hand them to the librarian.");
+            return;
+        }
+        Loan loan = pick("Which book are you returning?", returnable, this::loanLabel, "");
+        if (loan == null) return;
+        service.requestReturn(user, loan.getId());
+        success("Return request sent for " + titleOf(loan.getBookId()) + ".");
+        info("Next step: hand the book to the librarian. They'll check its condition and confirm the return.");
+        info("Until then it still counts as borrowed (and late fees still apply after the due date).");
+    }
+
     protected void donateBook() throws LibraryException {
-        subheader("Donate a Book");
+        info("Fill in the book's details. The librarian will check and shelve it.");
         DonationRequest d = service.submitDonation(user,
                 readRequired("Title: "),
                 readRequired("Author: "),
@@ -132,15 +172,11 @@ public abstract class BorrowerMenu extends Menu {
 
     protected void manageReservations() throws LibraryException {
         List<Reservation> reservations = service.getUserReservations(user.getId());
-        if (reservations.isEmpty()) {
-            info("You have no active reservations.");
-            return;
-        }
-        for (Reservation r : reservations) {
-            info(r + " | #" + service.getQueuePosition(r) + " in line");
-        }
-        if (confirm("Cancel a reservation?")) {
-            Reservation r = service.cancelReservation(user, readRequired("Reservation ID: "));
+        Reservation r = pick("Which reservation do you want to cancel?", reservations,
+                res -> res + " | #" + service.getQueuePosition(res) + " in line", "You have no active reservations.");
+        if (r == null) return;
+        if (confirm("Cancel this reservation?")) {
+            service.cancelReservation(user, r.getId());
             success("Reservation " + r.getId() + " cancelled.");
         }
     }
@@ -149,14 +185,12 @@ public abstract class BorrowerMenu extends Menu {
         subheader("My Fines");
         fineTable(service.getFinesForUser(user.getId()));
         List<Fine> unpaid = service.getUnpaidFines(user.getId());
-        if (unpaid.isEmpty()) {
-            return;
-        }
+        if (unpaid.isEmpty()) return;
         info(String.format("Total unpaid: PHP %.2f", service.getTotalUnpaid(user.getId())));
-        if (confirm("Pay a fine now?")) {
-            double change = service.payFine(user, readRequired("Fine ID: "), readDouble("Amount to pay (PHP): ", 0));
-            success(String.format("Payment recorded. Change: PHP %.2f", change));
-        }
+        Fine chosen = pick("Which fine do you want to pay?", unpaid, Menu::fineLabel, "");
+        if (chosen == null) return;
+        double change = service.payFine(user, chosen.getId(), readDouble("Amount to pay (PHP): ", 0));
+        success(String.format("Payment recorded. Change: PHP %.2f", change));
     }
 
     protected void printRequest(BorrowRequest request) throws LibraryException {
@@ -184,8 +218,10 @@ public abstract class BorrowerMenu extends Menu {
         @Override
         protected void requestBorrow() throws LibraryException {
             info("You hold/requested " + service.getCommittedCount(user.getId()) + " of " + user.getBorrowLimit() + " books.");
-            String bookId = readRequired("Book ID to borrow: ");
-            printRequest(service.submitBorrowRequest(user, Collections.singletonList(bookId)));
+            Book chosen = pick("Which book do you want to borrow?", borrowableBooks(), Menu::bookLabel,
+                    "There are no available books right now. Try reserving one instead!");
+            if (chosen == null) return;
+            printRequest(service.submitBorrowRequest(user, Collections.singletonList(chosen.getId())));
         }
     }
 
@@ -206,14 +242,11 @@ public abstract class BorrowerMenu extends Menu {
         @Override
         protected void requestBorrow() throws LibraryException {
             info("You hold/requested " + service.getCommittedCount(user.getId()) + " of " + user.getBorrowLimit() + " books.");
-            String raw = readRequired("Book IDs separated by commas (e.g. BK-0001, BK-0007): ");
+            List<Book> chosen = pickMany("Which books do you want to borrow?", borrowableBooks(), Menu::bookLabel,
+                    "There are no available books right now.");
+            if (chosen.isEmpty()) return;
             List<String> ids = new ArrayList<>();
-            for (String part : raw.split(",")) {
-                if (!part.trim().isEmpty()) ids.add(part.trim());
-            }
-            if (ids.isEmpty()) {
-                throw new InvalidInputException("No valid book IDs were entered.");
-            }
+            for (Book b : chosen) ids.add(b.getId());
             printRequest(service.submitBorrowRequest(user, ids));
         }
     }
