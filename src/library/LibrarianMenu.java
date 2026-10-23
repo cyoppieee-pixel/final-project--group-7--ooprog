@@ -220,8 +220,8 @@ public class LibrarianMenu extends Menu {
                 readRequired("Title: "),
                 readRequired("Author: "),
                 readRequired("Genre/Subject: "),
-                readInt("Year: ", 1450, 9999),
-                readRequired("ISBN: "),
+                readYear("Year: ", false),
+                readBookIsbn("ISBN: ", null),
                 readInt("Age rating (0 = all ages, max 18): ", 0, 18),
                 readDouble("Book value (PHP): ", 0));
         success("Added book. Generated book ID: " + book.getId());
@@ -229,7 +229,7 @@ public class LibrarianMenu extends Menu {
         int copies = readInt("How many copies to add now? (0-50): ", 0, 50);
         if (copies > 0) {
             String rack = readRequired("Rack number: ");
-            BookCondition condition = readEnum("Condition", BookCondition.class, false);
+            BookCondition condition = readCondition("Condition", false, false);
             for (int i = 0; i < copies; i++) {
                 BookCopy c = service.addCopy(book.getId(), rack, condition, false);
                 success("Copy " + c.getCopyId() + " shelved at rack " + c.getRackNumber());
@@ -247,11 +247,28 @@ public class LibrarianMenu extends Menu {
                 readOptional("New title: "),
                 readOptional("New author: "),
                 readOptional("New genre/subject: "),
-                readOptionalInt("New year: ", 1450, 9999),
-                readOptional("New ISBN: "),
+                readYear("New year: ", true),
+                readBookIsbn("New ISBN: ", book),
                 readOptionalInt("New age rating (0-18): ", 0, 18),
                 readOptionalDouble("New value (PHP): ", 0));
         success("Updated: " + updated);
+    }
+
+    /**
+     * ISBN for a catalog book, checked as soon as it is typed: format first, then
+     * whether another book already uses it. current = the book being updated
+     * (optional field, its own ISBN is fine), or null when adding a new book.
+     */
+    private String readBookIsbn(String prompt, Book current) {
+        return readChecked(prompt, current != null, raw -> {
+            String isbn = Book.normalizeIsbn(raw);
+            Book other = service.findByIsbn(isbn);
+            if (other != null && (current == null || !other.getId().equals(current.getId()))) {
+                throw new IllegalArgumentException("ISBN " + isbn + " is already used by \"" + other.getTitle()
+                        + "\"." + (current == null ? " Add a copy to that book instead." : ""));
+            }
+            return isbn;
+        });
     }
 
     private void removeBook() throws LibraryException {
@@ -293,7 +310,7 @@ public class LibrarianMenu extends Menu {
         BookCopy c = service.addCopy(
                 book.getId(),
                 readRequired("Rack number: "),
-                readEnum("Condition", BookCondition.class, false),
+                readCondition("Condition", false, false),
                 confirm("Apply Donated Tag?"));
         success("Added copy " + c);
     }
@@ -303,9 +320,14 @@ public class LibrarianMenu extends Menu {
         if (copy == null)
             return;
         info("Current: " + copy);
-        BookCopy c = service.updateCopy(copy.getCopyId(),
-                readOptional("New rack number (Enter = keep): "),
-                readEnum("New condition", BookCondition.class, true));
+        String rack = readOptional("New rack number (Enter = keep): ");
+        BookCondition condition = null;
+        if (copy.isOnLoan()) {
+            info("This copy is on loan, so its condition is recorded when it is returned.");
+        } else {
+            condition = readEnum("New condition", BookCondition.class, true);
+        }
+        BookCopy c = service.updateCopy(copy.getCopyId(), rack, condition);
         success("Updated: " + c);
     }
 
@@ -497,7 +519,7 @@ public class LibrarianMenu extends Menu {
         info("Returning: " + titleOf(loan.getBookId()) + " (Copy " + copy.getCopyId() + ")");
         info("Borrowed by: " + Records.userLabel(loan.getUserId()));
         info("Condition when borrowed: " + loan.getConditionAtBorrow());
-        BookCondition condition = readEnum("Condition on return (inspect the book now)", BookCondition.class, false);
+        BookCondition condition = readCondition("Condition on return (inspect the book now)", false, false);
         if (condition == null)
             return;
         List<Fine> fines = service.returnBook(copy.getCopyId(), condition);
@@ -660,7 +682,7 @@ public class LibrarianMenu extends Menu {
             BookCopy copy = service.approveDonation(
                     d.getId(),
                     readRequired("Rack number: "),
-                    readEnum("Condition", BookCondition.class, false));
+                    readCondition("Condition", false, false));
             success("Donated copy added: " + copy);
         } else {
             service.rejectDonation(d.getId(), readRequired("Reason for rejection: "));

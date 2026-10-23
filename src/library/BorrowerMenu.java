@@ -163,8 +163,8 @@ public abstract class BorrowerMenu extends Menu {
                 readRequired("Title: "),
                 readRequired("Author: "),
                 readRequired("Genre/Subject: "),
-                readInt("Year published: ", 1450, 9999),
-                readRequired("ISBN: "),
+                readYear("Year published: ", false),
+                readChecked("ISBN: ", false, Book::normalizeIsbn),
                 readInt("Suggested age rating (0 = all ages, max 18): ", 0, 18),
                 readDouble("Estimated value (PHP): ", 0));
         success("Donation " + d.getId() + " logged. The librarian has been alerted to tag and shelve it.");

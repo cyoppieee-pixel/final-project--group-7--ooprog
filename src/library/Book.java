@@ -61,25 +61,35 @@ public class Book implements Identifiable, Serializable {
 
     public int getYear() { return year; }
 
+    public static final int MIN_YEAR = 1450;
+
+    /** Latest allowed publication year (next year, for books announced early). */
+    public static int maxYear() { return LocalDate.now().getYear() + 1; }
+
     public void setYear(int year) {
-        int maxYear = LocalDate.now().getYear() + 1;
-        if (year < 1450 || year > maxYear) {
-            throw new IllegalArgumentException("Year must be between 1450 and " + maxYear + ".");
+        if (year < MIN_YEAR || year > maxYear()) {
+            throw new IllegalArgumentException("Year must be between " + MIN_YEAR + " and " + maxYear() + ".");
         }
         this.year = year;
     }
 
     public String getIsbn() { return isbn; }
 
-    public void setIsbn(String isbn) {
-        if (isbn == null) {
+    public void setIsbn(String isbn) { this.isbn = normalizeIsbn(isbn); }
+
+    /**
+     * Checks an ISBN and returns it as plain digits (dashes/spaces removed).
+     * Public so the menus can check it the moment it is typed.
+     */
+    public static String normalizeIsbn(String isbn) {
+        if (isbn == null || isbn.trim().isEmpty()) {
             throw new IllegalArgumentException("ISBN is required.");
         }
         String digits = isbn.replaceAll("[-\\s]", "").toUpperCase();
         if (!digits.matches("\\d{9}[\\dX]") && !digits.matches("\\d{13}")) {
             throw new IllegalArgumentException("ISBN must have 10 or 13 digits: " + isbn);
         }
-        this.isbn = digits;
+        return digits;
     }
 
     public int getAgeRating() { return ageRating; }

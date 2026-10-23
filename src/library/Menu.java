@@ -1,5 +1,6 @@
 package library;
 
+import library.Book.BookCondition;
 import library.Book.BookCopy;
 import library.ExceptionHandler.AgeRestrictionException;
 import library.ExceptionHandler.LibraryException;
@@ -398,6 +399,48 @@ public abstract class Menu {
             } else {
                 return value;
             }
+        }
+    }
+
+    /**
+     * Reads text and checks it IMMEDIATELY. If the check throws, its message is
+     * shown and the same question is asked again, so a mistake is caught before
+     * the next field. Returns the check's result (e.g. a cleaned-up ISBN), or
+     * null when optional and Enter is pressed.
+     */
+    public static String readChecked(String prompt, boolean optional, Function<String, String> check) {
+        while (true) {
+            String raw = readLine(prompt);
+            if (raw.isEmpty()) {
+                if (optional)
+                    return null;
+                warn("This field is required.");
+                continue;
+            }
+            try {
+                return check.apply(raw);
+            } catch (IllegalArgumentException e) {
+                warn(e.getMessage());
+            }
+        }
+    }
+
+    /** Publication year, limited to the range Book accepts (1450 to next year). */
+    public static Integer readYear(String prompt, boolean optional) {
+        return optional ? readOptionalInt(prompt, Book.MIN_YEAR, Book.maxYear())
+                : Integer.valueOf(readInt(prompt, Book.MIN_YEAR, Book.maxYear()));
+    }
+
+    /**
+     * Book condition. When allowLost is false, LOST is refused on the spot
+     * (new copies and returned books can't be LOST).
+     */
+    public static BookCondition readCondition(String label, boolean optional, boolean allowLost) {
+        while (true) {
+            BookCondition c = readEnum(label, BookCondition.class, optional);
+            if (c != BookCondition.LOST || allowLost)
+                return c;
+            warn("LOST can't be chosen here. Pick another condition.");
         }
     }
 
